@@ -23,6 +23,41 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
 
-    public function department() { return $this->belongsTo(\App\Models\Department::class); }
-    public function position() { return $this->belongsTo(\App\Models\Position::class); }
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class);
+    }
+
+    public function position()
+    {
+        return $this->belongsTo(\App\Models\Position::class);
+    }
+
+    public function travelRequests()
+    {
+        return $this->hasMany(\App\Models\TravelRequest::class);
+    }
+
+    public function reimbursements()
+    {
+        return $this->hasMany(\App\Models\Reimbursement::class);
+    }
+
+    public function approvals()
+    {
+        return $this->hasMany(\App\Models\Approval::class, 'approver_id');
+    }
+
+    // Role helper methods
+    public function isSuperAdmin(): bool { return $this->role === 'SUPER_ADMIN'; }
+    public function isAdmin(): bool { return in_array($this->role, ['ADMIN', 'SUPER_ADMIN'], true); }
+    public function isManager(): bool { return $this->role === 'MANAGER'; }
+    public function isHrd(): bool { return $this->role === 'HRD'; }
+    public function isFinance(): bool { return $this->role === 'FINANCE'; }
+    public function isEmployee(): bool { return $this->role === 'EMPLOYEE'; }
+
+    public function canApproveTravel(): bool
+    {
+        return in_array($this->role, ['MANAGER', 'HRD', 'ADMIN', 'SUPER_ADMIN'], true);
+    }
 }

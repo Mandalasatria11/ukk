@@ -12,11 +12,32 @@ class RoleMiddleware
     {
         $user = $request->user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+            }
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
-        if (!in_array($user->role, $roles, true)) {
-            return response()->json(['success' => false, 'message' => 'Forbidden: role tidak memiliki akses'], 403);
+
+        // Support both comma-separated and multiple parameter lists
+        $allowed = [];
+        foreach ($roles as $r) {
+            foreach (explode(',', $r) as $part) {
+                $allowed[] = trim($part);
+            }
         }
+
+        // SUPER_ADMIN has access to ADMIN privileges
+        if ($user->role === 'SUPER_ADMIN' && in_array('ADMIN', $allowed, true)) {
+            return $next($request);
+        }
+
+        if (!in_array($user->role, $allowed, true)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: role tidak memiliki akses'], 403);
+            }
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk membuka halaman ini.');
+        }
+
         return $next($request);
     }
 }

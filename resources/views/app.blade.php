@@ -75,7 +75,7 @@
       <blockquote class="text-xs text-slate-400 italic">
         "Mengotomatisasi alur perjalanan dinas perusahaan dengan akurasi penganggaran dan kepatuhan kebijakan 100%."
       </blockquote>
-      <div class="mt-2 text-xs font-semibold text-slate-300">© 2026 BizJourney · PT Andrea Corporate Suite</div>
+      <div class="mt-2 text-xs font-semibold text-slate-300">© 2026 BizJourney · Purnama Corporation</div>
     </div>
   </div>
 
