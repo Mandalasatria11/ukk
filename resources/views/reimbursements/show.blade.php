@@ -338,6 +338,19 @@
                 </div>
             @endif
 
+            @if(auth()->user()->isAdmin())
+                <div class="bg-white rounded-3xl border border-red-200 p-6 shadow-sm space-y-3">
+                    <div class="text-[10px] font-extrabold text-red-600 uppercase tracking-wider">Kontrol Admin / Super Admin</div>
+                    <form method="POST" action="{{ route('reimbursements.destroy', $reimbursement->id) }}" onsubmit="return confirm('Hapus permanen data klaim reimbursement #RMB-{{ $reimbursement->id }} ini?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-sm cursor-pointer">
+                            ✕ Hapus Data Klaim Reimbursement Ini
+                        </button>
+                    </form>
+                </div>
+            @endif
+
         </div>
 
     </div>

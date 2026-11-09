@@ -58,4 +58,42 @@ class TravelRequest extends Model
     {
         return $this->hasOne(Reimbursement::class);
     }
+
+    public function getStageStatusLabelAttribute(): string
+    {
+        $approvals = $this->relationLoaded('approvals') ? $this->approvals : $this->approvals()->get();
+        $lvl1 = $approvals->firstWhere('level', 1);
+        $lvl2 = $approvals->firstWhere('level', 2);
+
+        if ($this->status === 'REJECTED') {
+            if ($lvl1 && $lvl1->status === 'REJECTED') {
+                return 'Ditolak oleh Manager';
+            }
+            if ($lvl2 && $lvl2->status === 'REJECTED') {
+                return 'Ditolak oleh HRD';
+            }
+            return 'Ditolak (Rejected)';
+        }
+
+        if ($this->status === 'APPROVED') {
+            return 'Disetujui (Approved)';
+        }
+
+        if (in_array($this->status, ['PENDING_APPROVAL', 'SUBMITTED'], true)) {
+            if ($lvl2 && $lvl2->status === 'PENDING') {
+                return 'Disetujui Manager · Menunggu HRD';
+            }
+            return 'Menunggu Persetujuan Manager';
+        }
+
+        if ($this->status === 'DRAFT') {
+            return 'Draft';
+        }
+
+        if ($this->status === 'CANCELLED') {
+            return 'Dibatalkan';
+        }
+
+        return $this->status;
+    }
 }

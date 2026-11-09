@@ -62,7 +62,10 @@
                     </div>
 
                     <!-- Status Pill -->
-                    <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold {{ (int) $a->level === 1 ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-purple-100 text-purple-800 border border-purple-200' }}">
+                            {{ (int) $a->level === 1 ? 'Tahap 1: Persetujuan Manager' : 'Tahap 2: Persetujuan Akhir HRD' }}
+                        </span>
                         @if($a->status === 'PENDING')
                             <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -135,6 +138,18 @@
                             </span>
                         </div>
 
+                        @php
+                            $lvl1Appr = $t->approvals->firstWhere('level', 1);
+                        @endphp
+                        @if((int) $a->level === 2 && $lvl1Appr && $lvl1Appr->status === 'APPROVED')
+                            <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                                <div class="font-extrabold">✓ Telah Disetujui Manager ({{ $lvl1Appr->approver->name ?? 'Manager' }})</div>
+                                @if($lvl1Appr->note)
+                                    <div class="italic mt-0.5">"{{ $lvl1Appr->note }}"</div>
+                                @endif
+                            </div>
+                        @endif
+
                         @if($a->note)
                             <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 italic">
                                 <strong>Catatan Review:</strong> "{{ $a->note }}"
@@ -156,7 +171,7 @@
                                 ✕ Tolak Pengajuan
                             </button>
                             <button type="button" @click="decision = 'APPROVED'; modalOpen = true" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition shadow-md shadow-emerald-600/20 cursor-pointer">
-                                ✓ Setujui Pengajuan
+                                ✓ {{ (int) $a->level === 1 ? 'Setujui & Lanjut ke HRD' : 'Setujui Perjalanan Dinas' }}
                             </button>
                         </div>
                     </div>
@@ -190,7 +205,7 @@
                                         Batal
                                     </button>
                                     <button type="submit" class="px-5 py-2 rounded-xl text-xs font-extrabold text-white transition shadow-sm" :class="decision === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'">
-                                        <span x-text="decision === 'APPROVED' ? 'Ya, Setujui Perjalanan' : 'Ya, Tolak Pengajuan'"></span>
+                                        <span x-text="decision === 'APPROVED' ? '{{ (int) $a->level === 1 ? 'Ya, Setujui & Teruskan ke HRD' : 'Ya, Setujui Perjalanan Dinas' }}' : 'Ya, Tolak Pengajuan'"></span>
                                     </button>
                                 </div>
                             </form>

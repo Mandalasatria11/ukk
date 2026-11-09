@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\ActivityLog;
 use App\Models\Approval;
 use App\Models\Department;
+use App\Models\Notification;
 use App\Models\Position;
 use App\Models\Reimbursement;
 use App\Models\ReimbursementItem;
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
     {
         // Truncate tables for clean seeding
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Notification::truncate();
         ActivityLog::truncate();
         ReimbursementItem::truncate();
         Reimbursement::truncate();
@@ -109,6 +111,12 @@ class DatabaseSeeder extends Seeder
             'level' => 1,
             'status' => 'PENDING',
         ]);
+
+        Notification::notify(
+            userId: $manager->id,
+            title: "Pengajuan Dinas Baru #TRV-{$travel1->id}",
+            message: "Staf {$employee->name} (Divisi Sales) mengajukan perjalanan dinas ke {$travel1->destination} dan menunggu persetujuan Anda (Tahap 1: Manager)."
+        );
 
         // Sample Travel 2: Approved Travel + Reimbursement in Verification
         $travel2 = TravelRequest::create([

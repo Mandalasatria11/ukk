@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Approval;
+use App\Models\Notification;
 use App\Models\TravelDocument;
 use App\Models\TravelPolicy;
 use App\Models\TravelRequest;
@@ -25,7 +26,10 @@ class TravelRequestController extends Controller
         if ($user->isEmployee()) {
             $query->where('user_id', $user->id);
         } elseif ($user->isManager()) {
-            $query->where('department_id', $user->department_id);
+            $query->where(function ($q) use ($user) {
+                $q->where('department_id', $user->department_id)
+                  ->orWhereHas('approvals', fn($aq) => $aq->where('approver_id', $user->id));
+            });
         }
 
         // Status filter
@@ -112,15 +116,20 @@ class TravelRequestController extends Controller
                 ]);
             }
 
-            // If submitted directly, assign approval to Department Manager
+            // If submitted directly, assign Level 1 approval to Department Manager FIRST
             if ($status === 'PENDING_APPROVAL') {
                 $manager = User::where('department_id', $user->department_id)
                     ->where('role', 'MANAGER')
                     ->where('is_active', true)
                     ->first();
 
-                // If no department manager or user is manager, assign to HRD/Admin
-                $approverId = $manager ? $manager->id : User::where('role', 'HRD')->value('id');
+                if (!$manager) {
+                    $manager = User::where('role', 'MANAGER')
+                        ->where('is_active', true)
+                        ->first();
+                }
+
+                $approverId = $manager ? $manager->id : User::where('role', 'HRD')->where('is_active', true)->value('id');
 
                 Approval::create([
                     'travel_request_id' => $travel->id,
@@ -130,9 +139,18 @@ class TravelRequestController extends Controller
                     'note' => null,
                 ]);
 
+                if ($approverId) {
+                    $deptName = $user->department->name ?? 'Divisi';
+                    Notification::notify(
+                        userId: $approverId,
+                        title: "Pengajuan Dinas Baru #TRV-{$travel->id}",
+                        message: "Staf {$user->name} (Divisi {$deptName}) mengajukan perjalanan dinas ke {$travel->destination} dan menunggu persetujuan Anda (Tahap 1: Manager)."
+                    );
+                }
+
                 ActivityLog::log(
                     action: 'SUBMIT_TRAVEL',
-                    description: "{$user->name} mengajukan perjalanan dinas ke {$travel->destination} (Status: Pending Approval).",
+                    description: "{$user->name} mengajukan perjalanan dinas ke {$travel->destination} (Menunggu Persetujuan Manager).",
                     entityType: 'TravelRequest',
                     entityId: $travel->id
                 );
@@ -148,7 +166,7 @@ class TravelRequestController extends Controller
             DB::commit();
 
             $msg = ($status === 'PENDING_APPROVAL')
-                ? 'Pengajuan perjalanan dinas berhasil diajukan dan menunggu persetujuan Manager!'
+                ? 'Pengajuan perjalanan dinas berhasil diajukan! Notifikasi telah dikirim ke Manager untuk persetujuan Tahap 1.'
                 : 'Draft pengajuan perjalanan dinas berhasil disimpan.';
 
             return redirect()->route('travel.show', $travel->id)->with('success', $msg);
@@ -177,7 +195,12 @@ class TravelRequestController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk melihat pengajuan ini.');
         }
 
-        if ($user->isManager() && $travel->department_id !== $user->department_id && $travel->user_id !== $user->id) {
+        if (
+            $user->isManager()
+            && $travel->department_id !== $user->department_id
+            && $travel->user_id !== $user->id
+            && !$travel->approvals->contains('approver_id', $user->id)
+        ) {
             abort(403, 'Manager hanya dapat melihat pengajuan staf dari departemennya.');
         }
 
@@ -187,7 +210,7 @@ class TravelRequestController extends Controller
     public function submit($id)
     {
         $user = Auth::user();
-        $travel = TravelRequest::findOrFail($id);
+        $travel = TravelRequest::with('user.department')->findOrFail($id);
 
         if ($travel->user_id !== $user->id && !$user->isAdmin()) {
             abort(403, 'Hanya pemohon yang dapat mengajukan.');
@@ -201,13 +224,19 @@ class TravelRequestController extends Controller
         try {
             $travel->update(['status' => 'PENDING_APPROVAL']);
 
-            // Find Department Manager
+            // Find Department Manager (or fallback to active Manager)
             $manager = User::where('department_id', $travel->department_id)
                 ->where('role', 'MANAGER')
                 ->where('is_active', true)
                 ->first();
 
-            $approverId = $manager ? $manager->id : User::where('role', 'HRD')->value('id');
+            if (!$manager) {
+                $manager = User::where('role', 'MANAGER')
+                    ->where('is_active', true)
+                    ->first();
+            }
+
+            $approverId = $manager ? $manager->id : User::where('role', 'HRD')->where('is_active', true)->value('id');
 
             Approval::create([
                 'travel_request_id' => $travel->id,
@@ -216,15 +245,24 @@ class TravelRequestController extends Controller
                 'status' => 'PENDING',
             ]);
 
+            if ($approverId) {
+                $deptName = $travel->user->department->name ?? 'Divisi';
+                Notification::notify(
+                    userId: $approverId,
+                    title: "Pengajuan Dinas Baru #TRV-{$travel->id}",
+                    message: "Staf {$travel->user->name} (Divisi {$deptName}) mengajukan perjalanan dinas ke {$travel->destination} dan menunggu persetujuan Anda (Tahap 1: Manager)."
+                );
+            }
+
             ActivityLog::log(
                 action: 'SUBMIT_TRAVEL',
-                description: "{$user->name} mengirim pengajuan travel #TRV-{$travel->id} ke {$travel->destination} untuk approval.",
+                description: "{$user->name} mengirim pengajuan travel #TRV-{$travel->id} ke {$travel->destination} untuk persetujuan Manager.",
                 entityType: 'TravelRequest',
                 entityId: $travel->id
             );
 
             DB::commit();
-            return back()->with('success', 'Pengajuan berhasil dikirimkan ke Manager untuk diproses.');
+            return back()->with('success', 'Pengajuan berhasil dikirimkan! Notifikasi telah masuk ke Manager untuk persetujuan Tahap 1.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal mengirim pengajuan: ' . $e->getMessage());
@@ -262,19 +300,48 @@ class TravelRequestController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $travel = TravelRequest::findOrFail($id);
+        $travel = TravelRequest::with(['documents', 'reimbursement.items'])->findOrFail($id);
 
         if ($travel->user_id !== $user->id && !$user->isAdmin()) {
             abort(403, 'Akses ditolak.');
         }
 
-        if ($travel->status !== 'DRAFT') {
-            return back()->with('error', 'Hanya draf yang dapat dihapus.');
+        if ($travel->status !== 'DRAFT' && !$user->isAdmin()) {
+            return back()->with('error', 'Hanya draf yang dapat dihapus oleh pemohon.');
         }
 
-        $travel->delete();
+        DB::transaction(function () use ($travel, $user) {
+            if ($travel->reimbursement) {
+                foreach ($travel->reimbursement->items as $item) {
+                    if ($item->receipt_path) {
+                        Storage::disk('public')->delete($item->receipt_path);
+                    }
+                }
+                $travel->reimbursement->items()->delete();
+                $travel->reimbursement->delete();
+            }
 
-        return redirect()->route('travel.index')->with('success', 'Draft perjalanan dinas berhasil dihapus.');
+            foreach ($travel->documents as $doc) {
+                if ($doc->path) {
+                    Storage::disk('public')->delete($doc->path);
+                }
+            }
+
+            $travel->documents()->delete();
+            $travel->bookings()->delete();
+            $travel->approvals()->delete();
+
+            ActivityLog::log(
+                action: 'DELETE_TRAVEL',
+                description: "{$user->name} ({$user->role}) menghapus data perjalanan dinas #TRV-{$travel->id} ({$travel->destination}).",
+                entityType: 'TravelRequest',
+                entityId: $travel->id
+            );
+
+            $travel->delete();
+        });
+
+        return redirect()->route('travel.index')->with('success', 'Data perjalanan dinas berhasil dihapus.');
     }
 
     public function uploadDocument(Request $request, $id)

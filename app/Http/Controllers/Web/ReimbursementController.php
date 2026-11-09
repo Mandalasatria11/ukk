@@ -185,4 +185,34 @@ class ReimbursementController extends Controller
 
         return back()->with('success', 'Reimbursement berhasil diajukan ke Tim Finance untuk diverifikasi.');
     }
+
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        $reimbursement = Reimbursement::with('items')->findOrFail($id);
+
+        if (!$user->isAdmin() && ($reimbursement->user_id !== $user->id || $reimbursement->status !== 'DRAFT')) {
+            abort(403, 'Akses ditolak. Hanya Admin/Super Admin yang dapat menghapus data klaim ini.');
+        }
+
+        DB::transaction(function () use ($reimbursement, $user) {
+            foreach ($reimbursement->items as $item) {
+                if ($item->receipt_path) {
+                    Storage::disk('public')->delete($item->receipt_path);
+                }
+            }
+            $reimbursement->items()->delete();
+
+            ActivityLog::log(
+                action: 'DELETE_REIMBURSEMENT',
+                description: "{$user->name} ({$user->role}) menghapus data reimbursement #RMB-{$reimbursement->id}.",
+                entityType: 'Reimbursement',
+                entityId: $reimbursement->id
+            );
+
+            $reimbursement->delete();
+        });
+
+        return redirect()->route('reimbursements.index')->with('success', 'Data reimbursement berhasil dihapus.');
+    }
 }

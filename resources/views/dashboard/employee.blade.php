@@ -94,11 +94,11 @@
                             </td>
                             <td class="py-3.5 px-4">
                                 @if(in_array($t->status, ['PENDING_APPROVAL', 'SUBMITTED']))
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Menunggu Approval</span>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">{{ $t->stage_status_label }}</span>
                                 @elseif($t->status === 'APPROVED')
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Disetujui (Approved)</span>
                                 @elseif($t->status === 'REJECTED')
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Ditolak</span>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">{{ $t->stage_status_label }}</span>
                                 @elseif($t->status === 'DRAFT')
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">Draft</span>
                                 @else

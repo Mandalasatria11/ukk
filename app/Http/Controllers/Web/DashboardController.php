@@ -47,8 +47,9 @@ class DashboardController extends Controller
         if ($user->isManager()) {
             $deptId = $user->department_id;
 
-            $pendingApprovals = Approval::with(['travelRequest.user', 'travelRequest.department', 'travelRequest.policy'])
+            $pendingApprovals = Approval::with(['travelRequest.user.position', 'travelRequest.department', 'travelRequest.policy'])
                 ->where('status', 'PENDING')
+                ->where('level', 1)
                 ->where(function ($q) use ($user, $deptId) {
                     $q->where('approver_id', $user->id)
                       ->orWhereHas('travelRequest', function ($tq) use ($deptId) {
@@ -58,8 +59,11 @@ class DashboardController extends Controller
                 ->latest()
                 ->get();
 
-            $recentDeptTravels = TravelRequest::with(['user', 'policy'])
-                ->where('department_id', $deptId)
+            $recentDeptTravels = TravelRequest::with(['user', 'policy', 'approvals'])
+                ->where(function ($q) use ($deptId, $user) {
+                    $q->where('department_id', $deptId)
+                      ->orWhereHas('approvals', fn($aq) => $aq->where('approver_id', $user->id));
+                })
                 ->latest()
                 ->take(6)
                 ->get();
@@ -78,12 +82,16 @@ class DashboardController extends Controller
 
         // 3. HRD Dashboard Data
         if ($user->isHrd()) {
-            $pendingApprovals = Approval::with(['travelRequest.user', 'travelRequest.department', 'travelRequest.policy'])
+            $pendingApprovals = Approval::with(['travelRequest.user.position', 'travelRequest.department', 'travelRequest.policy'])
                 ->where('status', 'PENDING')
+                ->where(function ($q) use ($user) {
+                    $q->where('level', 2)
+                      ->orWhere('approver_id', $user->id);
+                })
                 ->latest()
                 ->get();
 
-            $recentTravels = TravelRequest::with(['user', 'department', 'policy'])
+            $recentTravels = TravelRequest::with(['user', 'department', 'policy', 'approvals'])
                 ->latest()
                 ->take(8)
                 ->get();

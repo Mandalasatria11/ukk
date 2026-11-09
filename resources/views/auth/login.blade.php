@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Masuk ke Akun — BizJourney</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/BizJourney Logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,9 +20,9 @@
 
         <div class="relative z-10">
             <!-- Brand Logo Header -->
-            <div class="flex items-center gap-3">
-                <div class="h-12 w-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400 shadow-xl backdrop-blur-md">
-                    <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <div class="flex items-center gap-3.5">
+                <div class="h-14 w-14 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-xl border border-amber-400/50">
+                    <img src="{{ asset('images/BizJourney Logo.png') }}" alt="BizJourney Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
                     <h1 class="text-2xl font-extrabold tracking-tight text-white">BizJourney</h1>
@@ -66,8 +67,8 @@
 
             <!-- Mobile Brand -->
             <div class="lg:hidden text-center">
-                <div class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#121824] text-amber-400 font-bold text-xl mb-2 shadow-lg">
-                    <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-2 mb-2 shadow-lg border border-amber-300">
+                    <img src="{{ asset('images/BizJourney Logo.png') }}" alt="BizJourney Logo" class="w-full h-full object-contain">
                 </div>
                 <h1 class="text-2xl font-black text-slate-900">BizJourney</h1>
                 <p class="text-xs text-amber-600 font-medium italic">Corporate Travel Management</p>
@@ -90,9 +91,14 @@
 
             <!-- Login Card -->
             <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 p-8 sm:p-10">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">Selamat Datang</h2>
-                    <p class="text-xs text-slate-500 mt-1">Masuk dengan kredensial perusahaan Anda (Session Web Login).</p>
+                <div class="mb-6 flex items-center gap-3.5">
+                    <div class="h-12 w-12 rounded-2xl bg-amber-50/70 border border-amber-200/80 p-1.5 flex items-center justify-center flex-shrink-0 shadow-xs">
+                        <img src="{{ asset('images/BizJourney Logo.png') }}" alt="BizJourney Logo" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Selamat Datang</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Masuk dengan kredensial perusahaan Anda (Session Web Login).</p>
+                    </div>
                 </div>
 
                 <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
@@ -127,7 +133,7 @@
             </div>
 
             <!-- QUICK LOGIN / TESTER PANEL -->
-            <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+            <!-- <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -161,7 +167,7 @@
                         <div class="text-xs text-slate-500 col-span-3">Tidak ada akun demo.</div>
                     @endforelse
                 </div>
-            </div>
+            </div> -->
 
         </div>
     </div>

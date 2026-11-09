@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') — BizJourney</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/BizJourney Logo.png') }}">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
@@ -26,9 +27,9 @@
     <!-- SIDEBAR -->
     <aside class="w-full md:w-64 bg-[#121824] text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 z-30">
         <!-- Brand Header -->
-        <div class="p-5 flex items-center gap-3 border-b border-slate-800/80">
-            <div class="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold shadow-md">
-                <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        <div class="p-5 flex items-center gap-3.5 border-b border-slate-800/80">
+            <div class="h-11 w-11 rounded-xl bg-white p-1 flex items-center justify-center shadow-md border border-amber-400/40 flex-shrink-0">
+                <img src="{{ asset('images/BizJourney Logo.png') }}" alt="BizJourney Logo" class="w-full h-full object-contain">
             </div>
             <div>
                 <h1 class="text-lg font-black tracking-tight text-white leading-tight">BizJourney</h1>
@@ -91,7 +92,18 @@
                     </div>
                     @php
                         $pendingCount = \App\Models\Approval::where('status', 'PENDING')
-                            ->when(auth()->user()->isManager(), fn($q) => $q->whereHas('travelRequest', fn($tq) => $tq->where('department_id', auth()->user()->department_id)))
+                            ->when(auth()->user()->isManager(), function ($q) {
+                                $q->where('level', 1)->where(function ($sq) {
+                                    $sq->where('approver_id', auth()->id())
+                                       ->orWhereHas('travelRequest', fn($tq) => $tq->where('department_id', auth()->user()->department_id));
+                                });
+                            })
+                            ->when(auth()->user()->isHrd(), function ($q) {
+                                $q->where(function ($sq) {
+                                    $sq->where('level', 2)
+                                       ->orWhere('approver_id', auth()->id());
+                                });
+                            })
                             ->count();
                     @endphp
                     @if($pendingCount > 0)
@@ -172,6 +184,11 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>Audit / Activity Logs</span>
                 </a>
+
+                <a href="{{ route('admin.backups') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.backups*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-300 hover:bg-[#1a2333] hover:text-white' }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    <span>Backup & Data Excel</span>
+                </a>
             @endif
         </nav>
 
@@ -198,6 +215,74 @@
             </div>
 
             <div class="flex items-center gap-3">
+                @php
+                    $userNotifications = \App\Models\Notification::where('user_id', auth()->id())->latest()->take(8)->get();
+                    $unreadNotifCount = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->count();
+                @endphp
+
+                <!-- Notification Bell Dropdown -->
+                <div class="relative" x-data="{ notifOpen: false }">
+                    <button type="button" @click="notifOpen = !notifOpen" class="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        @if($unreadNotifCount > 0)
+                            <span class="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-red-600 text-white text-[10px] font-extrabold flex items-center justify-center animate-pulse">
+                                {{ $unreadNotifCount }}
+                            </span>
+                        @endif
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div x-show="notifOpen" @click.away="notifOpen = false" x-cloak class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                        <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-extrabold text-slate-900">Notifikasi Sistem</div>
+                                <div class="text-[10px] text-slate-500">{{ $unreadNotifCount }} belum dibaca</div>
+                            </div>
+                            @if($unreadNotifCount > 0)
+                                <form method="POST" action="{{ route('notifications.readAll') }}">
+                                    @csrf
+                                    <button type="submit" class="text-[11px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer">
+                                        Tandai Semua Dibaca
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+
+                        <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                            @forelse($userNotifications as $notif)
+                                <div class="p-3.5 transition {{ !$notif->is_read ? 'bg-amber-50/40' : 'bg-white' }}">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5">
+                                                @if(!$notif->is_read)
+                                                    <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+                                                @endif
+                                                <div class="text-xs font-extrabold text-slate-900 truncate">{{ $notif->title }}</div>
+                                            </div>
+                                            <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">{{ $notif->message }}</p>
+                                            <div class="text-[10px] text-slate-400 mt-1">{{ $notif->created_at->diffForHumans() }}</div>
+                                        </div>
+                                        @if(!$notif->is_read)
+                                            <form method="POST" action="{{ route('notifications.read', $notif->id) }}">
+                                                @csrf
+                                                <button type="submit" title="Tandai dibaca" class="text-[10px] font-bold text-slate-400 hover:text-slate-700 px-1.5 py-0.5 rounded bg-slate-100">
+                                                    ✓
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="p-6 text-center text-xs text-slate-400">
+                                    Belum ada notifikasi.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
                 <span class="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                     Role: <span class="text-amber-700 font-extrabold">{{ auth()->user()->role }}</span>
                 </span>

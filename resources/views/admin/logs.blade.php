@@ -36,7 +36,18 @@
             @endif
         </form>
 
-        <span class="text-xs text-slate-500 font-medium">Total: {{ $logs->total() }} Catatan Aktivitas</span>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-500 font-medium">Total: {{ $logs->total() }} Catatan Aktivitas</span>
+            @if($logs->total() > 0)
+                <form method="POST" action="{{ route('admin.logs.clear') }}" onsubmit="return confirm('Bersihkan seluruh riwayat log aktivitas?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition cursor-pointer">
+                        ✕ Bersihkan Semua Log
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
 
     <!-- Logs Table -->
@@ -50,6 +61,7 @@
                         <th class="py-3.5 px-5">Pengguna Pelaksana</th>
                         <th class="py-3.5 px-5">Deskripsi Jejak Audit</th>
                         <th class="py-3.5 px-5 text-right">IP Address</th>
+                        <th class="py-3.5 px-5 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -82,10 +94,19 @@
                             <td class="py-3.5 px-5 text-right font-mono text-[11px] text-slate-400 whitespace-nowrap">
                                 {{ $log->ip_address ?? '127.0.0.1' }}
                             </td>
+                            <td class="py-3.5 px-5 text-right whitespace-nowrap">
+                                <form method="POST" action="{{ route('admin.logs.delete', $log->id) }}" onsubmit="return confirm('Hapus catatan log ini?')" class="inline-block">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 font-bold text-xs transition cursor-pointer">
+                                        Hapus
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="py-12 text-center text-slate-400">Belum ada jejak audit yang tercatat.</td>
+                            <td colspan="6" class="py-12 text-center text-slate-400">Belum ada jejak audit yang tercatat.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -138,9 +138,9 @@
                         @if($dt->status === 'APPROVED')
                             <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Approved</span>
                         @elseif(in_array($dt->status, ['PENDING_APPROVAL', 'SUBMITTED']))
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Pending</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{{ $dt->stage_status_label }}</span>
                         @elseif($dt->status === 'REJECTED')
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800">Rejected</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800">{{ $dt->stage_status_label }}</span>
                         @else
                             <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">{{ $dt->status }}</span>
                         @endif

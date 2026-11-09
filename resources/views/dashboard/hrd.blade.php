@@ -56,6 +56,72 @@
         </div>
     </div>
 
+    <!-- PENDING HRD APPROVALS QUEUE (STAGE 2 - AFTER MANAGER APPROVAL) -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                    Permohonan Menunggu Persetujuan HRD (Tahap 2)
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">Daftar pengajuan perjalanan dinas yang telah disetujui Manager dan memerlukan pengesahan akhir HRD</p>
+            </div>
+            <span class="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                {{ $pendingApprovals->count() }} Menunggu Tindakan HRD
+            </span>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            @forelse($pendingApprovals as $a)
+                @php $t = $a->travelRequest; @endphp
+                <div class="p-5 hover:bg-slate-50/80 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="h-11 w-11 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+                            {{ strtoupper(substr($t->user->name ?? 'User', 0, 2)) }}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-extrabold text-slate-900">{{ $t->user->name ?? 'Pemohon' }}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                    Divisi: {{ $t->department->name ?? 'Dept' }}
+                                </span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    ✓ Disetujui Manager
+                                </span>
+                            </div>
+                            <div class="text-xs font-bold text-slate-700 mt-1 flex items-center gap-2">
+                                <span class="text-amber-600 font-extrabold">Tujuan: {{ $t->destination }}</span>
+                                <span>·</span>
+                                <span class="text-slate-500">{{ $t->start_date->format('d M') }} s/d {{ $t->end_date->format('d M Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 self-end md:self-center">
+                        <div class="text-right">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase">Estimasi Biaya</div>
+                            <div class="text-base font-black text-slate-900">Rp {{ number_format($t->estimated_cost, 0, ',', '.') }}</div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('travel.show', $t->id) }}" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                                Lihat Rincian
+                            </a>
+                            <a href="{{ route('approvals.index') }}" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold transition shadow-sm">
+                                Tinjau Keputusan HRD →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="py-10 text-center text-slate-400">
+                    <p class="text-sm font-semibold text-slate-600">Tidak ada permohonan dinas yang menunggu persetujuan HRD saat ini.</p>
+                    <p class="text-xs text-slate-400 mt-1">Permohonan baru akan masuk ke sini setelah disetujui oleh Manager divisi terkait.</p>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
     <!-- Recent Submissions Table -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -96,11 +162,11 @@
                             </td>
                             <td class="py-3.5 px-4">
                                 @if(in_array($t->status, ['PENDING_APPROVAL', 'SUBMITTED']))
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Menunggu Approval</span>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">{{ $t->stage_status_label }}</span>
                                 @elseif($t->status === 'APPROVED')
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Approved</span>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Disetujui (Approved)</span>
                                 @elseif($t->status === 'REJECTED')
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Rejected</span>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800">{{ $t->stage_status_label }}</span>
                                 @else
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">{{ $t->status }}</span>
                                 @endif

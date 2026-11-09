@@ -18,7 +18,7 @@
             @if(in_array($travel->status, ['PENDING_APPROVAL', 'SUBMITTED']))
                 <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    Menunggu Persetujuan
+                    {{ $travel->stage_status_label }}
                 </span>
             @elseif($travel->status === 'APPROVED')
                 <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
@@ -28,7 +28,7 @@
             @elseif($travel->status === 'REJECTED')
                 <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-red-100 text-red-800 border border-red-300 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                    Ditolak (Rejected)
+                    {{ $travel->stage_status_label }}
                 </span>
             @elseif($travel->status === 'DRAFT')
                 <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-slate-100 text-slate-700 border border-slate-300">
@@ -169,8 +169,13 @@
             <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
                 <div class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-4 flex items-center justify-between">
                     <span>Alur Persetujuan (Approval Flow)</span>
-                    <span class="text-amber-600 font-bold">Multi-Level</span>
+                    <span class="text-amber-600 font-bold">2 Tahap (Manager → HRD)</span>
                 </div>
+
+                @php
+                    $lvl1 = $travel->approvals->firstWhere('level', 1);
+                    $lvl2 = $travel->approvals->firstWhere('level', 2);
+                @endphp
 
                 <div class="space-y-4">
                     <!-- Step 1: Pengajuan -->
@@ -179,70 +184,135 @@
                             ✓
                         </div>
                         <div>
-                            <div class="text-xs font-extrabold text-slate-900">1. Pengajuan Diajukan Karyawan</div>
-                            <div class="text-[11px] text-slate-500">{{ $travel->user->name }} · {{ $travel->created_at->format('d M Y, H:i') }}</div>
+                            <div class="text-xs font-extrabold text-slate-900">1. Pengajuan Diajukan Staf Divisi</div>
+                            <div class="text-[11px] text-slate-500">{{ $travel->user->name }} ({{ $travel->department->name ?? 'Divisi' }}) · {{ $travel->created_at->format('d M Y, H:i') }}</div>
                         </div>
                     </div>
 
-                    <!-- Approvals List -->
-                    @forelse($travel->approvals as $idx => $appr)
-                        <div class="flex items-start gap-3 pt-2 border-t border-slate-100">
+                    @if($travel->status === 'DRAFT')
+                        <div class="text-xs text-slate-400 py-3 italic border-t border-slate-100">
+                            Pengajuan masih berstatus Draft dan belum dikirimkan ke Manager.
+                        </div>
+                    @else
+                        <!-- Step 2: Persetujuan Tahap 1 (Manager) -->
+                        <div class="flex items-start gap-3 pt-3 border-t border-slate-100">
                             <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5
-                                @if($appr->status === 'APPROVED') bg-emerald-500 text-white
-                                @elseif($appr->status === 'REJECTED') bg-red-500 text-white
+                                @if($lvl1 && $lvl1->status === 'APPROVED') bg-emerald-500 text-white
+                                @elseif($lvl1 && $lvl1->status === 'REJECTED') bg-red-500 text-white
                                 @else bg-amber-500 text-slate-950 animate-pulse
                                 @endif">
-                                {{ $appr->status === 'APPROVED' ? '✓' : ($appr->status === 'REJECTED' ? '✕' : ($idx + 2)) }}
+                                {{ ($lvl1 && $lvl1->status === 'APPROVED') ? '✓' : (($lvl1 && $lvl1->status === 'REJECTED') ? '✕' : '2') }}
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs font-extrabold text-slate-900">
-                                        {{ $idx === 0 ? 'Persetujuan Level 1: Manager' : 'Persetujuan Level 2: HRD' }}
+                                        2. Persetujuan Tahap 1: Manager
                                     </div>
                                     <span class="text-[10px] font-extrabold px-2 py-0.5 rounded
-                                        @if($appr->status === 'APPROVED') bg-emerald-100 text-emerald-800
-                                        @elseif($appr->status === 'REJECTED') bg-red-100 text-red-800
+                                        @if($lvl1 && $lvl1->status === 'APPROVED') bg-emerald-100 text-emerald-800
+                                        @elseif($lvl1 && $lvl1->status === 'REJECTED') bg-red-100 text-red-800
                                         @else bg-amber-100 text-amber-800
                                         @endif">
-                                        {{ $appr->status }}
+                                        {{ $lvl1->status ?? 'PENDING' }}
                                     </span>
                                 </div>
                                 <div class="text-[11px] text-slate-500 mt-0.5">
-                                    Peninjau: <strong>{{ $appr->approver->name ?? 'Manager Departemen' }}</strong>
+                                    Peninjau: <strong>{{ $lvl1->approver->name ?? 'Manager Divisi' }}</strong>
                                 </div>
-                                @if($appr->note)
+                                @if($lvl1 && $lvl1->note)
                                     <div class="mt-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 italic">
-                                        "{{ $appr->note }}"
+                                        "{{ $lvl1->note }}"
                                     </div>
                                 @endif
-                                <div class="text-[10px] text-slate-400 mt-1">
-                                    {{ $appr->updated_at->format('d M Y, H:i') }}
-                                </div>
+                                @if($lvl1)
+                                    <div class="text-[10px] text-slate-400 mt-1">
+                                        {{ $lvl1->updated_at->format('d M Y, H:i') }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
-                    @empty
-                        <div class="text-xs text-slate-400 py-3 italic">
-                            Pengajuan belum dikirimkan ke persetujuan.
+
+                        <!-- Step 3: Persetujuan Tahap 2 (HRD) -->
+                        <div class="flex items-start gap-3 pt-3 border-t border-slate-100">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5
+                                @if($lvl2 && $lvl2->status === 'APPROVED') bg-emerald-500 text-white
+                                @elseif($lvl2 && $lvl2->status === 'REJECTED') bg-red-500 text-white
+                                @elseif($lvl2 && $lvl2->status === 'PENDING') bg-amber-500 text-slate-950 animate-pulse
+                                @else bg-slate-200 text-slate-500
+                                @endif">
+                                {{ ($lvl2 && $lvl2->status === 'APPROVED') ? '✓' : (($lvl2 && $lvl2->status === 'REJECTED') ? '✕' : '3') }}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs font-extrabold text-slate-900">
+                                        3. Persetujuan Tahap 2: HRD
+                                    </div>
+                                    @if($lvl2)
+                                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded
+                                            @if($lvl2->status === 'APPROVED') bg-emerald-100 text-emerald-800
+                                            @elseif($lvl2->status === 'REJECTED') bg-red-100 text-red-800
+                                            @else bg-amber-100 text-amber-800
+                                            @endif">
+                                            {{ $lvl2->status }}
+                                        </span>
+                                    @elseif($lvl1 && $lvl1->status === 'REJECTED')
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600">
+                                            DIHENTIKAN
+                                        </span>
+                                    @else
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                                            MENUNGGU MANAGER
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if($lvl2)
+                                    <div class="text-[11px] text-slate-500 mt-0.5">
+                                        Peninjau: <strong>{{ $lvl2->approver->name ?? 'HRD' }}</strong>
+                                    </div>
+                                    @if($lvl2->note)
+                                        <div class="mt-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 italic">
+                                            "{{ $lvl2->note }}"
+                                        </div>
+                                    @endif
+                                    <div class="text-[10px] text-slate-400 mt-1">
+                                        {{ $lvl2->updated_at->format('d M Y, H:i') }}
+                                    </div>
+                                @elseif($lvl1 && $lvl1->status === 'REJECTED')
+                                    <div class="text-[11px] text-red-600 mt-0.5 italic">
+                                        Pengajuan telah ditolak oleh Manager sehingga tidak diteruskan ke HRD.
+                                    </div>
+                                @else
+                                    <div class="text-[11px] text-slate-400 mt-0.5 italic">
+                                        Menunggu persetujuan dari Manager terlebih dahulu sebelum masuk ke HRD.
+                                    </div>
+                                @endif
+                            </div>
                         </div>
-                    @endforelse
+                    @endif
                 </div>
 
-                <!-- APPROVER INLINE ACTION FORM (If current user is the approver/manager/HRD) -->
+                <!-- APPROVER INLINE ACTION FORM (Strict Level-Based Authorization) -->
                 @php
-                    $pendingApprovalForMe = $travel->approvals->where('status', 'PENDING')->first();
-                    $canIApprove = $pendingApprovalForMe && (
-                        auth()->id() === $pendingApprovalForMe->approver_id ||
-                        (auth()->user()->isManager() && auth()->user()->department_id === $travel->department_id) ||
-                        auth()->user()->isHrd() ||
-                        auth()->user()->isAdmin()
-                    );
+                    $pendingApprovalForMe = $travel->approvals->where('status', 'PENDING')->sortBy('level')->first();
+                    $canIApprove = false;
+                    if ($pendingApprovalForMe) {
+                        if ((int) $pendingApprovalForMe->level === 1) {
+                            $canIApprove = auth()->user()->isAdmin()
+                                || (auth()->user()->isManager() && (auth()->user()->department_id === $travel->department_id || auth()->id() === $pendingApprovalForMe->approver_id));
+                        } elseif ((int) $pendingApprovalForMe->level === 2) {
+                            $canIApprove = auth()->user()->isAdmin()
+                                || auth()->user()->isHrd()
+                                || auth()->id() === $pendingApprovalForMe->approver_id;
+                        }
+                    }
                 @endphp
 
                 @if($canIApprove)
                     <div class="mt-6 pt-5 border-t border-slate-200" x-data="{ decision: 'APPROVED' }">
                         <div class="text-xs font-extrabold text-slate-900 mb-2 flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                            Tindakan Persetujuan Anda ({{ auth()->user()->role }})
+                            Keputusan Persetujuan Tahap {{ $pendingApprovalForMe->level }} ({{ (int) $pendingApprovalForMe->level === 1 ? 'Manager' : 'HRD' }})
                         </div>
 
                         <form method="POST" action="{{ route('approvals.decide', $pendingApprovalForMe->id) }}" class="space-y-3">
@@ -262,11 +332,11 @@
                                 <label class="text-[11px] font-bold text-slate-700 block mb-1">
                                     Catatan Keputusan <span x-show="decision === 'REJECTED'" class="text-red-600">* (Wajib jika ditolak)</span>
                                 </label>
-                                <textarea name="note" rows="2" placeholder="Tuliskan catatan persetujuan atau alasan penolakan..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                                <textarea name="note" rows="2" :required="decision === 'REJECTED'" placeholder="Tuliskan catatan persetujuan atau alasan penolakan..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:ring-2 focus:ring-amber-500"></textarea>
                             </div>
 
                             <button type="submit" class="w-full py-2.5 rounded-xl font-extrabold text-xs text-white transition shadow-sm" :class="decision === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'">
-                                Simpan Keputusan Persetujuan
+                                <span x-text="decision === 'APPROVED' ? ({{ (int) $pendingApprovalForMe->level === 1 ? "'Setujui & Teruskan ke HRD →'" : "'Setujui Perjalanan Dinas (Final) ✓'" }}) : 'Tolak Pengajuan Dinas ✕'"></span>
                             </button>
                         </form>
                     </div>
@@ -320,6 +390,19 @@
                             </button>
                         </form>
                     @endif
+                </div>
+            @endif
+
+            @if(auth()->user()->isAdmin())
+                <div class="bg-white rounded-3xl border border-red-200 p-6 shadow-sm space-y-3">
+                    <div class="text-[10px] font-extrabold text-red-600 uppercase tracking-wider">Kontrol Admin / Super Admin</div>
+                    <form method="POST" action="{{ route('travel.destroy', $travel->id) }}" onsubmit="return confirm('Hapus permanen data perjalanan dinas #TRV-{{ $travel->id }} ini?')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-sm cursor-pointer">
+                            ✕ Hapus Data Perjalanan Dinas Ini
+                        </button>
+                    </form>
                 </div>
             @endif
 

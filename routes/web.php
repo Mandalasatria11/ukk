@@ -25,6 +25,8 @@ Route::get('/quick-login/{id}', [AuthController::class, 'quickLogin'])->name('qu
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/notifications/{id}/read', [ApprovalController::class, 'markNotificationRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [ApprovalController::class, 'markAllNotificationsRead'])->name('notifications.readAll');
 
     // Perjalanan Dinas (Travel Requests)
     Route::prefix('travel')->name('travel.')->group(function () {
@@ -51,6 +53,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/create', [ReimbursementController::class, 'create'])->name('create');
         Route::post('/', [ReimbursementController::class, 'store'])->name('store');
         Route::get('/{id}', [ReimbursementController::class, 'show'])->name('show');
+        Route::delete('/{id}', [ReimbursementController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/items', [ReimbursementController::class, 'addItem'])->name('items.add');
         Route::delete('/items/{itemId}', [ReimbursementController::class, 'deleteItem'])->name('items.delete');
         Route::post('/{id}/submit', [ReimbursementController::class, 'submit'])->name('submit');
@@ -72,7 +75,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
         Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
         Route::post('/users/{id}/toggle', [AdminController::class, 'toggleUserActive'])->name('users.toggle');
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+
         Route::get('/logs', [AdminController::class, 'activityLogs'])->name('logs');
+        Route::delete('/logs/{id}', [AdminController::class, 'deleteLog'])->name('logs.delete');
+        Route::delete('/logs', [AdminController::class, 'clearLogs'])->name('logs.clear');
+
         Route::get('/master', [AdminController::class, 'masterData'])->name('master');
         Route::post('/departments', [AdminController::class, 'storeDepartment'])->name('departments.store');
         Route::delete('/departments/{id}', [AdminController::class, 'deleteDepartment'])->name('departments.delete');
@@ -80,5 +88,16 @@ Route::middleware('auth')->group(function () {
         Route::delete('/positions/{id}', [AdminController::class, 'deletePosition'])->name('positions.delete');
         Route::post('/policies', [AdminController::class, 'storePolicy'])->name('policies.store');
         Route::delete('/policies/{id}', [AdminController::class, 'deletePolicy'])->name('policies.delete');
+
+        // Backup Data, Export/Import Excel & Hapus Data Massal
+        Route::get('/backups', [AdminController::class, 'backups'])->name('backups');
+        Route::post('/backups', [AdminController::class, 'createBackup'])->name('backups.create');
+        Route::get('/backups/excel/{source?}', [AdminController::class, 'downloadBackupExcel'])->name('backups.excel');
+        Route::get('/backups/csv/{source?}', [AdminController::class, 'downloadBackupCsv'])->name('backups.csv');
+        Route::get('/backups/json/{filename}', [AdminController::class, 'downloadBackupJson'])->name('backups.json');
+        Route::post('/backups/restore/{filename}', [AdminController::class, 'restoreBackup'])->name('backups.restore');
+        Route::post('/backups/import', [AdminController::class, 'importBackupFile'])->name('backups.import');
+        Route::delete('/backups/purge', [AdminController::class, 'purgeData'])->name('backups.purge');
+        Route::delete('/backups/{filename}', [AdminController::class, 'deleteBackup'])->name('backups.delete');
     });
 });

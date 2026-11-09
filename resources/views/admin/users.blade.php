@@ -30,10 +30,16 @@
             </select>
         </form>
 
-        <button type="button" @click="createModal = true" class="w-full md:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-            <span>+ Buat Akun Pengguna</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <a href="{{ route('admin.backups.csv', ['source' => 'live', 'module' => 'users']) }}" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition shadow-sm flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Export Excel (.csv)</span>
+            </a>
+            <button type="button" @click="createModal = true" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                <span>+ Buat Akun Pengguna</span>
+            </button>
+        </div>
     </div>
 
     <!-- Users Table -->
@@ -80,15 +86,22 @@
                                     {{ $u->is_active ? 'Aktif' : 'Nonaktif' }}
                                 </span>
                             </td>
-                            <td class="py-3.5 px-5 text-right space-x-1">
+                            <td class="py-3.5 px-5 text-right space-x-1 whitespace-nowrap">
                                 <button type="button" @click="selectedUser = {{ json_encode($u) }}; editModal = true" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer">
                                     Edit
                                 </button>
                                 @if(auth()->id() !== $u->id)
                                     <form method="POST" action="{{ route('admin.users.toggle', $u->id) }}" class="inline-block" onsubmit="return confirm('Ubah status aktif/nonaktif akun ini?')">
                                         @csrf
-                                        <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition {{ $u->is_active ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50' }}">
+                                        <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer {{ $u->is_active ? 'text-amber-700 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50' }}">
                                             {{ $u->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.users.delete', $u->id) }}" class="inline-block" onsubmit="return confirm('Hapus permanen pengguna {{ $u->name }} beserta data terkaitnya?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold transition cursor-pointer">
+                                            Hapus
                                         </button>
                                     </form>
                                 @endif
